@@ -1,36 +1,60 @@
-# Resume Tailor Web App
+<<<<<<< HEAD
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-## Structure
+## Getting Started
 
-- `/srv/` — Main UI code (Landing Page, Dashboard, Resume Preview)
-- `/src/app/page.tsx` — Entry point, renders UI from `/srv/page.tsx`
-- `/srv/components/` — Modular React components
+First, run the development server:
 
-## Setup
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-1. Install dependencies:
-   ```sh
-   npm install
-   npm install --prefix web
-   ```
-2. Add environment variables to `/web/.env.local`:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-   NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
-   ```
-3. Run the development server:
-   ```sh
-   npm run dev --prefix web
-   ```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Features
-- Magic link login (Supabase)
-- Dashboard with resume CRUD
-- AI-tailored resume preview, edit, and PDF download
-- Tailwind CSS 3.3.5 styling
-- Input validation and loading/error states
+You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-## Customization
-- UI code is in `/web/srv/` for easy extension
-- Add new components to `/web/srv/components/`
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+=======
+# 📝 AI-Powered Resume Builder
+
+A modern, AI-assisted resume builder built with **React**, **Next.js**, and **Firebase**. Easily create, customize, and export professional resumes with intelligent suggestions and sleek design templates.
+
+## ✨ Features
+
+- 🤖 **AI Suggestions** – Generate job-specific experience bullet points from your job description using Gemini AI
+- ✍️ **Grammar Correction** – Fix grammar and improve clarity of resume text
+- 🎨 **Live Template Preview** – Choose from multiple stylish, responsive resume templates
+- 🖨️ **PDF Export** – One-click export to high-quality PDF via html2canvas + jsPDF
+- ☁️ **Cloud Sync** – Save and retrieve resumes in real-time with Firebase Firestore
+- 🔐 **Anonymous Auth** – Seamless anonymous login via Firebase Auth
+- 🌙 **Dark/Light Mode** – Toggle between light and dark themes
+
+## 🚀 Tech Stack
+
+- [Next.js](https://nextjs.org/)
+- [React](https://reactjs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Firebase (Auth + Firestore)](https://firebase.google.com/)
+- [html2canvas](https://html2canvas.hertzen.com/) + [jsPDF](https://github.com/parallax/jsPDF)
+- [Gemini AI API](https://ai.google.dev/)
