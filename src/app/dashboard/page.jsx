@@ -1,12 +1,6 @@
 "use client";
 import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import {
-  getFirestore, collection, doc,
-  onSnapshot, addDoc, updateDoc, deleteDoc,
-  query, where // query and where are good to have but not explicitly used for user resumes here
-} from 'firebase/firestore';
+
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import ResumeTemplateSelector from './ResumeTemplateSelector';
@@ -16,6 +10,9 @@ import {
   MinimalistTemplate,
   CreativeTemplate
 } from './ResumeTemplateSelector';
+import { savePromptAndResponse } from '../../db/supabase';
+import { ThemeToggle } from '../../components/ThemeToggle.jsx';
+import { generateAISuggestions, correctText as aiCorrectText } from '../ai/generate.js';
 
 
 // IMPORTANT: For PDF generation, ensure html2canvas and jspdf are available in your environment.
@@ -25,27 +22,38 @@ import {
 // import jsPDF from 'jspdf';
 // For this Canvas environment, we will assume they are globally available or
 
-// Firebase Configuration (ensure this matches your project's config)
-const firebaseConfig = {
-    apiKey: "AIzaSyBtQSDFyrVbTdg6pXH2lq-6qr8jV7lhAPA",
-    authDomain: "airesumebuilder-c75e1.firebaseapp.com",
-    projectId: "airesumebuilder-c75e1",
-    storageBucket: "airesumebuilder-c75e1.firebasestorage.app",
-    messagingSenderId: "153375108193",
-    appId: "1:153375108193:web:4f2de46e9b4bbcdf280e20",
-    measurementId: "G-2WFD7SH6V6"
-  };
+// Theme Context for Dark/Light mode
+const ThemeContext = createContext();
+const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
+  return context;
+};
 
+const ThemeProvider = ({ children }) => {
+  const [isDark, setIsDark] = useState(true); // Default to dark mode
+  const toggleTheme = () => setIsDark((prev) => !prev);
 
-// Inline SVG for icons to ensure they work in the environment and are easily stylable
+  return (
+    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+// SVG Icon Components
+const FileTextIcon = (props) => (
+  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text">
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+    <path d="M10 9H8" />
+    <path d="M16 13H8" />
+    <path d="M16 17H8" />
+  </svg>
+);
 const PlusIcon = (props) => (
   <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus">
     <path d="M5 12h14" /><path d="M12 5v14" />
-  </svg>
-);
-const FileTextIcon = (props) => (
-  <svg {...props} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text">
-    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /><path d="M10 9H8" /><path d="M16 13H8" /><path d="M16 17H8" />
   </svg>
 );
 const DownloadIcon = (props) => (
@@ -82,7 +90,6 @@ const XIcon = (props) => (
     <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
   </svg>
 );
-
 const SunIcon = (props) => (
   <svg {...props} fill="currentColor" viewBox="0 0 20 20">
     <path
@@ -92,48 +99,12 @@ const SunIcon = (props) => (
     />
   </svg>
 );
-
 const MoonIcon = (props) => (
   <svg {...props} fill="currentColor" viewBox="0 0 20 20">
     <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
   </svg>
 );
 
-
-// Theme Context for Dark/Light mode
-const ThemeContext = createContext();
-const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
-  return context;
-};
-
-const ThemeProvider = ({ children }) => {
-  const [isDark, setIsDark] = useState(true); // Default to dark mode
-  const toggleTheme = () => setIsDark((prev) => !prev);
-
-  return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
-
-// Global Theme Toggle Button
-const ThemeToggle = () => {
-  const { isDark, toggleTheme } = useTheme();
-  return (
-    <button
-      onClick={toggleTheme}
-      className={`fixed top-4 right-4 p-2 rounded-full shadow-lg border z-50 transition-all duration-300 transform hover:scale-110 ${
-        isDark ? 'bg-gray-800 border-gray-700 text-yellow-400' : 'bg-white border-gray-200 text-blue-600'
-      }`}
-      aria-label="Toggle theme"
-    >
-      {isDark ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-    </button>
-  );
-};
 
 // Custom Modal Component (replaces alert/confirm)
 const Modal = ({ message, onClose, onConfirm, showConfirmButton = false }) => {
@@ -163,11 +134,18 @@ const Modal = ({ message, onClose, onConfirm, showConfirmButton = false }) => {
   );
 };
 
+// Session ID management
+function getSessionId() {
+  if (typeof window === 'undefined') return null;
+  let sessionId = localStorage.getItem('sessionId');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    localStorage.setItem('sessionId', sessionId);
+  }
+  return sessionId;
+}
 
 const App = () => {
-  const [db, setDb] = useState(null);
-  const [auth, setAuth] = useState(null);
-  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [resumes, setResumes] = useState([]);
   const [currentResume, setCurrentResume] = useState(null);
@@ -184,7 +162,7 @@ const App = () => {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const [newSkillInput, setNewSkillInput] = useState('');
   const [isAddingSkill, setIsAddingSkill] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -211,81 +189,27 @@ const App = () => {
     selectedItemShadow: 'shadow-inner'
   };
 
-  // Firebase Initialization and Auth
+  // Fetch resumes on mount
   useEffect(() => {
-    try {
-      const app = initializeApp(firebaseConfig);
-      const firestore = getFirestore(app);
-      const authentication = getAuth(app);
-
-      setDb(firestore);
-      setAuth(authentication);
-
-      const unsubscribe = onAuthStateChanged(authentication, async (user) => {
-        if (user) {
-          setUserId(user.uid);
-          setLoading(false);
-        } else {
-          try {
-            if (typeof __initial_auth_token !== 'undefined') {
-              await signInWithCustomToken(authentication, __initial_auth_token);
-            } else {
-              await signInAnonymously(authentication);
-            }
-          } catch (error) {
-            console.error("Error signing in:", error);
-            showSystemMessage(`Authentication error: ${error.message}. Please try again.`);
-            setLoading(false);
-          }
-        }
-      });
-
-      return () => unsubscribe();
-    } catch (error) {
-      console.error("Failed to initialize Firebase:", error);
-      showSystemMessage(`Firebase initialization error: ${error.message}.`);
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch resumes when userId and db are ready
-  useEffect(() => {
-    if (db && userId) {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      const resumesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/resumes`);
-
-      const q = query(resumesCollectionRef);
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedResumes = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          content: JSON.parse(doc.data().content || '{}')
-        }));
+    async function fetchResumes() {
+      setLoading(true);
+      try {
+        const sessionId = getSessionId();
+        const res = await fetch(`/api/resume?sessionId=${sessionId}`);
+        if (!res.ok) throw new Error('Failed to fetch resumes');
+        const fetchedResumes = await res.json();
         setResumes(fetchedResumes);
-
         if (!currentResume && fetchedResumes.length > 0) {
           setCurrentResume(fetchedResumes[0]);
-        } else if (currentResume) {
-          const updatedCurrent = fetchedResumes.find(r => r.id === currentResume.id);
-          if (updatedCurrent) {
-            setCurrentResume(updatedCurrent);
-          } else if (fetchedResumes.length === 0) {
-            setCurrentResume(null);
-          } else {
-            setCurrentResume(fetchedResumes[0]);
-          }
         }
+      } catch (error) {
+        showSystemMessage(`Error fetching resumes: ${error.message}`);
+      } finally {
         setLoading(false);
-      }, (error) => {
-        console.error("Error fetching resumes:", error);
-        showSystemMessage(`Error fetching resumes: ${error.message}.`);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
+      }
     }
-  }, [db, userId, currentResume?.id]);
+    fetchResumes();
+  }, []);
 
   // Helper function to show system messages via modal
   const showSystemMessage = (message, confirmButton = false, callback = null) => {
@@ -296,34 +220,26 @@ const App = () => {
 
   // Handler for creating a new resume
   const handleCreateNewResume = async () => {
-    if (!newResumeName.trim() || !db || !userId) {
-      showSystemMessage("Resume name cannot be empty or Firebase not initialized.");
+    if (!newResumeName.trim()) {
+      showSystemMessage("Resume name cannot be empty.");
       return;
     }
     setLoading(true);
     try {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      const resumesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/resumes`);
-      const newResumeData = {
-        name: newResumeName,
-        createdAt: new Date().toISOString(),
-        content: JSON.stringify({
-          personalInfo: { name: '', email: '', phone: '', linkedin: '' },
-          experience: [],
-          education: [],
-          skills: [],
-          certifications: [], // Initialize certifications as an empty array
-          summary: ''
-        }),
-        template: 'Modern' // Default template for new resumes
-      };
-
-      const docRef = await addDoc(resumesCollectionRef, newResumeData);
+      const sessionId = getSessionId();
+      const res = await fetch('/api/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newResumeName, sessionId })
+      });
+      if (!res.ok) throw new Error('Failed to create resume');
+      const newResume = await res.json();
+      console.log('Resume created in MongoDB:', newResume);
       setNewResumeName('');
       showSystemMessage(`Resume "${newResumeName}" created successfully!`);
-      setCurrentResume({ id: docRef.id, ...newResumeData, content: JSON.parse(newResumeData.content) });
+      setCurrentResume(newResume);
+      setResumes(prev => [...prev, newResume]);
     } catch (error) {
-      console.error("Error creating resume:", error);
       showSystemMessage(`Error creating resume: ${error.message}`);
     } finally {
       setLoading(false);
@@ -356,6 +272,7 @@ const App = () => {
         ],
       },
     }));
+    setAiSuggestions((prev) => prev.filter((s) => s !== suggestion));
   };
 
 
@@ -375,22 +292,22 @@ const App = () => {
 
   // Handler for updating the current resume
   const handleUpdateResume = async () => {
-    if (!currentResume || !db || !userId) {
-      showSystemMessage("No resume selected or Firebase not initialized.");
+    if (!currentResume) {
+      showSystemMessage("No resume selected.");
       return;
     }
     setLoading(true);
     try {
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-      const resumeDocRef = doc(db, `artifacts/${appId}/users/${userId}/resumes`, currentResume.id);
-      await updateDoc(resumeDocRef, {
-        name: currentResume.name,
-        content: JSON.stringify(currentResume.content),
-        template: currentResume.template
+      const res = await fetch('/api/resume', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume: currentResume })
       });
+      if (!res.ok) throw new Error('Failed to update resume');
+      const updated = await res.json();
+      console.log('Resume saved to MongoDB:', updated);
       showSystemMessage(`Resume "${currentResume.name}" updated successfully!`);
     } catch (error) {
-      console.error("Error updating resume:", error);
       showSystemMessage(`Error updating resume: ${error.message}`);
     } finally {
       setLoading(false);
@@ -399,23 +316,22 @@ const App = () => {
 
   // Handler for deleting a resume
   const handleDeleteResume = (resumeId) => {
+    console.log('Deleting resume with id:', resumeId); // Log the id for confirmation
     showSystemMessage("Are you sure you want to delete this resume?", true, async () => {
-      // Callback function for confirmation
-      if (!db || !userId) {
-        showSystemMessage("Firebase not initialized.");
-        return;
-      }
       setLoading(true);
       try {
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const resumeDocRef = doc(db, `artifacts/${appId}/users/${userId}/resumes`, resumeId);
-        await deleteDoc(resumeDocRef);
+        const res = await fetch('/api/resume', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: resumeId })
+        });
+        if (!res.ok && res.status !== 204) throw new Error('Failed to delete resume');
+        setResumes(prev => prev.filter(r => r.id !== resumeId));
         if (currentResume && currentResume.id === resumeId) {
           setCurrentResume(null);
         }
         showSystemMessage("Resume deleted successfully!");
       } catch (error) {
-        console.error("Error deleting resume:", error);
         showSystemMessage(`Error deleting resume: ${error.message}`);
       } finally {
         setLoading(false);
@@ -483,26 +399,16 @@ const App = () => {
     setAiLoading(true);
     setAiSuggestions([]);
     try {
-      // Call the AI model (gemini-2.0-flash)
-      const prompt = `Based on this job description, generate 3-5 bullet point suggestions for a resume's experience section. Focus on actionable verbs and quantifiable results. Job Description: "${jobDescription}"`;
-      const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
-      const apiKey =  process.env.NEXT_PUBLIC_GEMINI_API_KEY;; // Canvas will automatically provide this
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-
-      if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
-        const text = result.candidates[0].content.parts[0].text;
-        // Parse the text into an array of suggestions (assuming bullet points)
-        const suggestionsArray = text.split('\n').filter(line => line.trim().startsWith('*') || line.trim().startsWith('-')).map(line => line.replace(/^(\*|-)\s*/, '').trim());
-        setAiSuggestions(suggestionsArray);
-      } else {
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      const suggestionsArray = await generateAISuggestions(jobDescription, apiKey);
+      setAiSuggestions(suggestionsArray);
+      if (suggestionsArray.length === 0) {
         showSystemMessage("No suggestions generated. Please try again.");
+      }
+      try {
+        await savePromptAndResponse(jobDescription, suggestionsArray);
+      } catch (e) {
+        console.error('Failed to save prompt/response to Supabase:', e);
       }
     } catch (error) {
       console.error("Error generating AI suggestions:", error);
@@ -521,24 +427,10 @@ const App = () => {
     setCorrectionLoading(true);
     setCorrectedText('');
     try {
-      // Call the AI model (gemini-2.0-flash)
-      const prompt = `Correct the grammar, spelling, and punctuation of the following text, and suggest improvements for clarity and conciseness. Only return the corrected text. Text: "${textToCorrect}"`;
-      const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      ; // Canvas will automatically provide this
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-      console.log("Gemini API key:", apiKey); // should show your actual key
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
-
-      if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
-        setCorrectedText(result.candidates[0].content.parts[0].text);
+      const corrected = await aiCorrectText(textToCorrect, apiKey);
+      if (corrected) {
+        setCorrectedText(corrected);
       } else {
         showSystemMessage("No corrections generated. Please try again.");
       }
@@ -630,8 +522,10 @@ const App = () => {
 
   return (
     <div className={"min-h-screen flex flex-col lg:flex-row " + themeClasses.bg + " font-inter relative"}>
-      {/* Theme Toggle Button */}
-      <ThemeToggle />
+      {/* Theme Toggle Button - top right, same as homepage */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle isDark={isDark} toggleTheme={toggleTheme} />
+      </div>
 
       {/* Modal for system messages */}
       {showModal && (
@@ -1461,10 +1355,15 @@ const App = () => {
                     <h3 className={`font-semibold mb-2 ${themeClasses.text}`}>Suggestions:</h3>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {aiSuggestions.map((suggestion, index) => (
-                        <li key={index} className={themeClasses.textSecondary}>{suggestion}
+                        <li key={index} className={themeClasses.textSecondary}>
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: suggestion.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            }}
+                          />
                           <button
                             onClick={() => handleAddSuggestionToExperience(suggestion)}
-                            className={`ml-2 text-blue-500 hover:text-blue-400 text-xs font-semibold`}
+                            className="ml-2 text-blue-500 hover:text-blue-400 text-xs font-semibold"
                           >
                             (Add to Experience)
                           </button>
@@ -1567,14 +1466,6 @@ const App = () => {
           </div>
         )}
       </main>
-
-      {/* User ID Display - Moved to bottom right */}
-      {userId && (
-        <div className={"fixed bottom-4 right-4 p-3 rounded-lg shadow-xl text-sm z-40 transition-colors duration-300 " + (isDark ? 'bg-gray-800/80 text-gray-300 border border-gray-700' : 'bg-white/80 text-gray-700 border border-gray-200') + ' flex items-center gap-2'}>
-          <span className="font-semibold">User ID:</span>
-          <span className="font-mono text-xs truncate max-w-[150px]">{userId}</span>
-        </div>
-      )}
 
       {/* Resume Preview Area for Export - only rendered when exporting */}
       {previewVisible && currentResume && (

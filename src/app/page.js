@@ -23,12 +23,31 @@ import {
   Clock,
   TrendingUp,
 } from "lucide-react";
+import { ThemeToggle } from '../components/ThemeToggle';
+
+// Modal component (copied and adapted from dashboard/page.jsx)
+const Modal = ({ message, onClose, isDark }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+    <div className={`p-6 rounded-lg shadow-xl max-w-sm mx-auto text-center border ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-white text-gray-900 border-gray-200'}`}>
+      <p className="text-lg font-semibold mb-4">{message}</p>
+      <div className="flex justify-center">
+        <button
+          onClick={onClose}
+          className={`py-2 px-5 rounded-lg font-semibold transition duration-300 ${isDark ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+        >
+          Okay
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 export default function Home() {
   // ============ STATE MANAGEMENT ============
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
+  const [showModal, setShowModal] = useState(false);
 
   // ============ SCROLL EFFECT HANDLER ============
   useEffect(() => {
@@ -81,29 +100,11 @@ export default function Home() {
           {/* Action Buttons */}
           <div className="flex items-center space-x-4">
             {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              className={`p-2 rounded-lg ${themeClasses.hover} transition-colors`}
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? (
-                <Sun className={`h-5 w-5 ${themeClasses.text}`} />
-              ) : (
-                <Moon className={`h-5 w-5 ${themeClasses.text}`} />
-              )}
-            </button>
-
-            {/* Login Button */}
-            <Link
-              href="/login"
-              className={`px-4 py-2 ${themeClasses.textSecondary} ${themeClasses.hover} rounded-lg transition-colors`}
-            >
-              Login
-            </Link>
+            <ThemeToggle isDark={isDarkMode} toggleTheme={toggleTheme} />
 
             {/* Get Started Button */}
             <Link
-              href="/signup"
+              href="/dashboard"
               className={`px-6 py-2 ${themeClasses.accent} text-white rounded-lg font-medium hover:opacity-90 transition-opacity shadow-lg`}
             >
               Get Started
@@ -152,7 +153,7 @@ export default function Home() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/signup"
+                href="/dashboard"
                 className={`px-8 py-4 ${themeClasses.accent} text-white rounded-xl font-semibold text-lg hover:opacity-90 transition-all hover:scale-105 transform duration-200 shadow-xl flex items-center justify-center space-x-2`}
               >
                 <span>Get Started Free</span>
@@ -288,7 +289,7 @@ export default function Home() {
       icon: <Shield className="h-8 w-8" />,
       title: "Secure Cloud Storage",
       description:
-        "Save multiple resumes safely with Firebase authentication and cloud backup.",
+        "Save multiple resumes safely with secure cloud backup.",
       color: "from-green-500 to-yellow-500",
     },
     {
@@ -354,7 +355,7 @@ export default function Home() {
       step: "01",
       title: "Sign Up & Choose Template",
       description:
-        "Create your account with Google or email and select from our professional templates.",
+        "Get start and select from our professional templates.",
       icon: <Users className="h-6 w-6" />,
     },
     {
@@ -508,13 +509,14 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/signup"
+              href="/dashboard"
               className={`px-8 py-4 ${themeClasses.accent} text-white rounded-xl font-semibold text-lg hover:opacity-90 transition-opacity shadow-xl`}
             >
               Start Building Now
             </Link>
             <button
               className={`px-8 py-4 ${themeClasses.cardBg} ${themeClasses.text} border ${themeClasses.border} rounded-xl font-semibold text-lg ${themeClasses.hover} transition-colors`}
+              onClick={() => setShowModal(true)}
             >
               View Examples
             </button>
@@ -669,6 +671,13 @@ export default function Home() {
       <StatsSection />
       <CTASection />
       <Footer />
+      {showModal && (
+        <Modal
+          message="Coming Soon!"
+          onClose={() => setShowModal(false)}
+          isDark={isDarkMode}
+        />
+      )}
     </div>
   );
 }
