@@ -48,6 +48,7 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeFeature, setActiveFeature] = useState(0);
   const [showModal, setShowModal] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState(null);
 
   // ============ SCROLL EFFECT HANDLER ============
   useEffect(() => {
@@ -162,6 +163,7 @@ export default function Home() {
 
               <button
                 className={`px-8 py-4 ${themeClasses.cardBg} ${themeClasses.text} border ${themeClasses.border} rounded-xl font-semibold text-lg ${themeClasses.hover} transition-colors`}
+                onClick={() => setComingSoonFeature('Watch Demo feature')}
               >
                 Watch Demo
               </button>
@@ -353,7 +355,7 @@ export default function Home() {
   const stepsData = [
     {
       step: "01",
-      title: "Sign Up & Choose Template",
+      title: "Choose Template",
       description:
         "Get start and select from our professional templates.",
       icon: <Users className="h-6 w-6" />,
@@ -516,7 +518,7 @@ export default function Home() {
             </Link>
             <button
               className={`px-8 py-4 ${themeClasses.cardBg} ${themeClasses.text} border ${themeClasses.border} rounded-xl font-semibold text-lg ${themeClasses.hover} transition-colors`}
-              onClick={() => setShowModal(true)}
+              onClick={() => setComingSoonFeature('View Examples feature')}
             >
               View Examples
             </button>
@@ -671,7 +673,14 @@ export default function Home() {
       <StatsSection />
       <CTASection />
       <Footer />
-      {showModal && (
+      {comingSoonFeature && (
+        <Modal
+          message={`${comingSoonFeature} coming soon!`}
+          onClose={() => setComingSoonFeature(null)}
+          isDark={isDarkMode}
+        />
+      )}
+      {showModal && !comingSoonFeature && (
         <Modal
           message="Coming Soon!"
           onClose={() => setShowModal(false)}

@@ -641,94 +641,99 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
     const [showPreview, setShowPreview] = useState(true);
     const [previewScale, setPreviewScale] = useState(0.7);
     const [selectedColor, setSelectedColor] = useState('blue');
+    const [comingSoonFeature, setComingSoonFeature] = useState(null);
     const printRef = useRef();
 
     // Enhanced sample resume data with more realistic content
     const sampleData = {
       personalInfo: {
-        name: "Sarah Johnson",
-        title: "Full Stack Developer",
-        email: "sarah.johnson@email.com",
-        phone: "+1 (555) 987-6543",
-        location: "Austin, TX",
-        website: "sarah-dev.com",
-        linkedin: "linkedin.com/in/sarahjohnson",
-        github: "github.com/sarahjdev",
-        summary: "Passionate full-stack developer with 6+ years of experience building scalable web applications. Expertise in React, Node.js, and cloud technologies with a proven track record of delivering high-quality solutions that drive business growth."
+        name: "Muhammad Abdullah",
+        title: "Deep Learning Engineer",
+        email: "abdullah@email.com",
+        phone: "+92 300-1111111",
+        location: "Islamabad, Federal",
+        website: "ml-portfolio.com",
+        linkedin: "linkedin.com/in/abdullahlinked",
+        github: "github.com/whis-19",
+        summary: "Innovative Deep Learning Engineer with 4+ years of experience designing, training, and deploying state-of-the-art neural networks for computer vision, NLP, and generative AI. Expert in PyTorch, TensorFlow, and large-scale ML pipelines. Passionate about research and building production-ready AI solutions."
       },
       experience: [
         {
-          title: "Senior Full Stack Developer",
-          company: "TechFlow Solutions",
-          period: "Jan 2022 - Present",
-          location: "Austin, TX",
-          description: "Lead a team of 4 developers in building enterprise-grade web applications. Architected microservices that handle 1M+ daily requests with 99.9% uptime. Reduced deployment time by 60% through CI/CD automation.",
-          achievements: [
-            "Increased application performance by 45% through code optimization",
-            "Mentored 3 junior developers, leading to 2 promotions",
-            "Implemented automated testing reducing bugs by 30%"
-          ]
-        },
-        {
-          title: "Full Stack Developer",
-          company: "InnovateLab",
-          period: "Jun 2020 - Dec 2021",
+          title: "Deep Learning Research Scientist",
+          company: "AI Vision Labs",
+          period: "Sep 2022 - Present",
           location: "Remote",
-          description: "Developed responsive web applications using React and Express.js. Collaborated with UX designers to create intuitive user interfaces. Integrated third-party APIs and payment systems.",
+          description: "Lead research and development of advanced deep learning models for image and video analysis. Architected scalable training pipelines and contributed to open-source DL libraries.",
           achievements: [
-            "Built 5 client projects generating $500K+ revenue",
-            "Reduced page load times by 40% through optimization",
-            "Implemented real-time features using WebSocket"
+            "Published 3 papers at top-tier ML conferences (CVPR, NeurIPS)",
+            "Reduced model inference latency by 50% using quantization and pruning",
+            "Developed a GAN-based data augmentation framework improving accuracy by 8%"
           ]
         },
         {
-          title: "Frontend Developer",
-          company: "StartupXYZ",
-          period: "Sep 2018 - May 2020",
-          location: "San Francisco, CA",
-          description: "Created dynamic user interfaces and collaborated with backend teams to integrate RESTful APIs. Participated in agile development processes and code reviews.",
+          title: "Machine Learning Engineer",
+          company: "DataGenix Solutions",
+          period: "Jan 2020 - Aug 2022",
+          location: "Islamabad, Pakistan",
+          description: "Designed and deployed ML models for predictive analytics and NLP applications. Collaborated with data scientists and engineers to productionize ML workflows.",
           achievements: [
-            "Developed mobile-first responsive designs",
-            "Improved user engagement by 25%",
-            "Contributed to open-source projects"
+            "Deployed BERT-based text classification model with 92% F1 score",
+            "Automated feature engineering pipeline, reducing manual effort by 70%",
+            "Mentored 5 junior ML engineers in deep learning best practices"
+          ]
+        },
+        {
+          title: "AI Intern (Deep Learning)",
+          company: "Visionary AI Research Group",
+          period: "Jun 2019 - Dec 2019",
+          location: "FAST, CFD",
+          description: "Assisted in developing CNN architectures for medical image segmentation and anomaly detection.",
+          achievements: [
+            "Improved segmentation IoU by 12% through custom loss functions",
+            "Integrated TensorBoard for experiment tracking",
+            "Contributed to open-source medical imaging toolkit"
           ]
         }
       ],
       education: [
         {
-          degree: "Bachelor of Science in Computer Science",
-          school: "University of Texas at Austin",
-          year: "2018",
-          gpa: "3.8/4.0",
-          honors: "Magna Cum Laude"
+          degree: "Bachelor of Science in Computer Science (AI Track)",
+          school: "National University of Computer and Emerging Sciences",
+          year: "2019",
+          gpa: "2.9/4.0",
         }
       ],
       skills: {
-        technical: ["JavaScript", "TypeScript", "React", "Node.js", "Python", "AWS", "Docker", "MongoDB", "PostgreSQL", "GraphQL"],
-        soft: ["Leadership", "Problem Solving", "Communication", "Team Collaboration", "Project Management"]
+        technical: ["Python", "PyTorch", "TensorFlow", "Keras", "scikit-learn", "OpenCV", "Hugging Face Transformers", "Docker", "AWS SageMaker", "MLflow", "CUDA", "Pandas", "NumPy"],
+        soft: ["Research", "Problem Solving", "Collaboration", "Technical Communication", "Project Leadership"]
       },
       certifications: [
         {
-          name: "AWS Certified Solutions Architect",
-          issuer: "Amazon Web Services",
+          name: "TensorFlow Developer Certificate",
+          issuer: "Google",
           year: "2023"
         },
         {
-          name: "React Developer Certification",
-          issuer: "Meta",
+          name: "Deep Learning Specialization",
+          issuer: "deeplearning.ai (Andrew Ng)",
           year: "2022"
         }
       ],
       projects: [
         {
-          name: "E-commerce Platform",
-          description: "Built a full-stack e-commerce solution handling 10K+ products",
-          technologies: ["React", "Node.js", "MongoDB", "Stripe API"]
+          name: "Autonomous Vehicle Perception System",
+          description: "Developed a multi-modal deep learning pipeline for real-time object detection and lane segmentation in self-driving cars.",
+          technologies: ["PyTorch", "OpenCV", "YOLOv5", "TensorRT"]
         },
         {
-          name: "Task Management App",
-          description: "Real-time collaborative project management tool",
-          technologies: ["Vue.js", "Socket.io", "Express", "PostgreSQL"]
+          name: "AI-Powered Medical Diagnosis Assistant",
+          description: "Built an end-to-end system for disease prediction from X-ray images using CNNs and explainable AI techniques.",
+          technologies: ["TensorFlow", "Keras", "Grad-CAM", "Streamlit"]
+        },
+        {
+          name: "NLP Chatbot for Healthcare",
+          description: "Implemented a transformer-based conversational agent for patient triage and FAQ automation.",
+          technologies: ["Hugging Face Transformers", "spaCy", "FastAPI"]
         }
       ]
     };
@@ -747,13 +752,17 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
       Creative: "Colorful and dynamic with creative visual elements"
     };
 
+    // Helper for 'coming soon' popup
+    const showComingSoon = (feature) => {
+      setComingSoonFeature(feature);
+    };
+
     const handlePrint = () => {
-      window.print();
+      showComingSoon('Print feature');
     };
 
     const handleDownloadPDF = () => {
-      // In a real app, you'd use a library like html2pdf or jsPDF
-      alert('PDF download functionality would be implemented here using a library like html2pdf.js');
+      showComingSoon('Download PDF feature');
     };
 
     const SelectedTemplate = templates[selectedTemplate];
@@ -767,6 +776,20 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
         background: isDark ? '#111827' : '#f9fafb',
         color: isDark ? '#f3f4f6' : '#111827'
       }}>
+        {/* Coming Soon Modal */}
+        {comingSoonFeature && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200]">
+            <div className="p-6 rounded-lg shadow-xl max-w-xs mx-auto text-center border bg-gray-800 text-white border-gray-700">
+              <p className="text-lg font-semibold mb-6">{comingSoonFeature} coming soon!</p>
+              <button
+                onClick={() => setComingSoonFeature(null)}
+                className="py-2 px-8 rounded-lg font-semibold transition duration-300 bg-blue-600 hover:bg-blue-700 text-white text-lg"
+              >
+                Okay
+              </button>
+            </div>
+          </div>
+        )}
         <div style={{ 
           background: isDark ? '#1e293b' : '#ffffff',
           color: isDark ? '#f3f4f6' : '#111827',
@@ -907,10 +930,7 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
                 Download PDF
               </button>
               <button
-                onClick={() => {
-                  if (onUseTemplate) onUseTemplate(selectedTemplate);
-                  if (onClose) onClose();
-                }}
+                onClick={() => showComingSoon('Use Template feature')}
                 style={{ background: '#16a34a', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.95rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#15803d'}
                 onMouseLeave={e => e.currentTarget.style.background = '#16a34a'}
