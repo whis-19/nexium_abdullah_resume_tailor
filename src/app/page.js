@@ -505,7 +505,7 @@ export default function Home() {
           <p
             className={`text-xl ${themeClasses.textSecondary} max-w-2xl mx-auto`}
           >
-            Join thousands of professionals who've transformed their careers
+            Join thousands of professionals who&#39;ve transformed their careers
             with our AI-powered resume builder.
           </p>
 
