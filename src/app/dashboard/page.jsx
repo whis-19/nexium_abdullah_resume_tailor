@@ -14,14 +14,6 @@ import { savePromptAndResponse } from '../../db/supabase';
 import { ThemeToggle } from '../../components/ThemeToggle.jsx';
 import { generateAISuggestions, correctText as aiCorrectText } from '../ai/generate.js';
 
-
-// IMPORTANT: For PDF generation, ensure html2canvas and jspdf are available in your environment.
-// If running in a standard React setup, you would typically `npm install html2canvas jspdf`
-// and import them:
-// import html2canvas from 'html2canvas';
-// import jsPDF from 'jspdf';
-// For this Canvas environment, we will assume they are globally available or
-
 // Theme Context for Dark/Light mode
 const ThemeContext = createContext();
 const useTheme = () => {

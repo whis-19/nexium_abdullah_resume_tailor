@@ -806,23 +806,20 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
               <p style={{ fontSize: '1.125rem', color: '#6b7280' }}>Choose from our professional resume templates with live previews</p>
             </div>
             <button
-              onClick={() => setShowPreview(!showPreview)}
+              onClick={onClose}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
+                background: '#d1d5db',
+                color: '#1f2937',
                 padding: '0.75rem 1.5rem',
-                borderRadius: '0.75rem',
+                borderRadius: '9999px',
+                fontSize: '0.95rem',
                 fontWeight: 500,
-                transition: 'all 0.2s',
-                background: showPreview ? '#3b82f6' : '#e5e7eb',
-                color: showPreview ? '#ffffff' : '#374151',
                 border: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                marginLeft: '1rem'
               }}
             >
-              {showPreview ? <EyeOff size={20} /> : <Eye size={20} />}
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
+              Close Template Selector
             </button>
           </div>
 
@@ -841,11 +838,12 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
                     width: '3rem',
                     height: '3rem',
                     borderRadius: '9999px',
-                    border: `4px solid ${selectedColor === color ? '#1e293b' : '#d1d5db'}`,
+                    border: `4px solid ${selectedColor === color ? '#6366f1' : '#d1d5db'}`,
                     background: `linear-gradient(135deg, ${scheme.primary.color}, ${scheme.secondary.color})`,
                     transform: selectedColor === color ? 'scale(1.1)' : 'scale(1)',
                     transition: 'all 0.2s',
-                    outline: 'none',
+                    outline: selectedColor === color ? '2px solid #6366f1' : 'none',
+                    boxShadow: selectedColor === color ? '0 0 0 4px #6366f133' : 'none',
                     cursor: 'pointer'
                   }}
                   title={color.charAt(0).toUpperCase() + color.slice(1)}
@@ -1005,28 +1003,28 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
           </div>
         )}
 
-        {onClose && (
-          <div style={{ 
-            marginTop: '2rem',
-            textAlign: 'center'
-          }}>
-            <button 
-              onClick={onClose} 
-              style={{
-                background: '#d1d5db',
-                color: '#1f2937',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '9999px',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              Close Template Selector
-            </button>
-          </div>
-        )}
+        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+          <button
+            onClick={() => setShowPreview(!showPreview)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.75rem',
+              fontWeight: 500,
+              transition: 'all 0.2s',
+              background: showPreview ? '#3b82f6' : '#e5e7eb',
+              color: showPreview ? '#ffffff' : '#374151',
+              border: 'none',
+              cursor: 'pointer',
+              margin: '0 auto'
+            }}
+          >
+            {showPreview ? <EyeOff size={20} /> : <Eye size={20} />}
+            {showPreview ? 'Hide Preview' : 'Show Preview'}
+          </button>
+        </div>
       </div>
     );
   };
