@@ -169,6 +169,7 @@ const App = () => {
   const [skillSuggestions, setSkillSuggestions] = useState([]);
   const skillInputRef = useRef(null);
   const [startPDFExport, setStartPDFExport] = useState(false);
+  const [selectedColor, setSelectedColor] = useState('blue');
 
 
   // Determine theme-based classes
@@ -557,8 +558,13 @@ const App = () => {
               setSelectedTemplate={(template) => {
                 setCurrentResume((prev) => prev ? { ...prev, template } : prev);
               }}
-              onUseTemplate={(template) => {
-                setCurrentResume((prev) => prev ? { ...prev, template } : prev);
+              selectedColor={currentResume?.color || selectedColor}
+              setSelectedColor={(color) => {
+                setSelectedColor(color);
+                setCurrentResume((prev) => prev ? { ...prev, color } : prev);
+              }}
+              onUseTemplate={(template, color) => {
+                setCurrentResume((prev) => prev ? { ...prev, template, color } : prev);
                 setShowTemplateSelector(false);
                 showSystemMessage(`Template changed to "${template}"!`);
               }}
@@ -1353,6 +1359,7 @@ const App = () => {
                 {aiSuggestions.length > 0 && (
                   <div className={`mt-4 p-4 rounded-lg border ${isDark ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-100/50 border-gray-200'}`}>
                     <h3 className={`font-semibold mb-2 ${themeClasses.text}`}>Suggestions:</h3>
+                    <p className={`text-xs mb-2 ${themeClasses.textSecondary}`}>Note: If any suggestions below are projects, these are recommended for you to complete first before adding them to your resume. Do not add projects you have not actually done.</p>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {aiSuggestions.map((suggestion, index) => (
                         <li key={index} className={themeClasses.textSecondary}>

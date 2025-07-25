@@ -637,10 +637,9 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
     );
   };
 
-  const ResumeTemplateSelector = ({ selectedTemplate = 'Modern', setSelectedTemplate, onUseTemplate, onClose, isDark = false }) => {
+  const ResumeTemplateSelector = ({ selectedTemplate = 'Modern', setSelectedTemplate, selectedColor = 'blue', setSelectedColor, onUseTemplate, onClose, isDark = false }) => {
     const [showPreview, setShowPreview] = useState(true);
     const [previewScale, setPreviewScale] = useState(0.7);
-    const [selectedColor, setSelectedColor] = useState('blue');
     const [comingSoonFeature, setComingSoonFeature] = useState(null);
     const printRef = useRef();
 
@@ -930,7 +929,7 @@ const getColorClass = (type, shade = '600', selectedColor = 'blue') => {
                 Download PDF
               </button>
               <button
-                onClick={() => showComingSoon('Use Template feature')}
+                onClick={() => onUseTemplate && onUseTemplate(selectedTemplate, selectedColor)}
                 style={{ background: '#16a34a', color: '#fff', padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.95rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#15803d'}
                 onMouseLeave={e => e.currentTarget.style.background = '#16a34a'}
