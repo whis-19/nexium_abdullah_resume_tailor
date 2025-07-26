@@ -571,11 +571,18 @@ const App = () => {
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
 
+        let firstPage = false;
         while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
           pdf.addPage();
+          position = heightLeft - imgHeight;
           pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
           heightLeft -= pageHeight;
+          firstPage = false;
+        }
+
+        // Remove last page if it's blank
+        if (pdf.internal.getNumberOfPages() > 1 && heightLeft === imgHeight - pageHeight) {
+          pdf.deletePage(pdf.internal.getNumberOfPages());
         }
 
         pdf.save(`${currentResume.name || 'resume'}.pdf`);
