@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPendingRequests, updateQueueStatus, getCachedResponse, cacheResponse } from '../../../../db/queue';
-import { generateAISuggestions, correctText } from '../../ai/generate';
+import { generateAISuggestions, correctText } from '../../../ai/generate';
 
 // Simple hash function for caching
 function simpleHash(str) {
