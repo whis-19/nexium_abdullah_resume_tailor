@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { LayoutTemplate, User, Mail, Phone, MapPin, Calendar, Award, Briefcase, GraduationCap, Download, Eye, EyeOff, Palette, Zap, Star, Globe, Github, Linkedin } from 'lucide-react';
+import QueueMonitor from '../../components/QueueMonitor';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import ResumeTemplateSelector from './ResumeTemplateSelector';
@@ -162,6 +163,7 @@ const App = () => {
   const skillInputRef = useRef(null);
   const [startPDFExport, setStartPDFExport] = useState(false);
   const [selectedColor, setSelectedColor] = useState('blue');
+  const [showQueueMonitor, setShowQueueMonitor] = useState(false);
 
 
   // Determine theme-based classes
@@ -383,53 +385,142 @@ const App = () => {
     });
   };
 
-  // Handler for generating AI suggestions based on job description
+  // Handler for generating AI suggestions using n8n
   const handleGenerateAISuggestions = async () => {
     if (!jobDescription.trim()) {
       showSystemMessage("Please enter a job description to get suggestions.");
       return;
     }
+    
     setAiLoading(true);
     setAiSuggestions([]);
+    
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      const suggestionsArray = await generateAISuggestions(jobDescription, apiKey);
-      setAiSuggestions(suggestionsArray);
-      if (suggestionsArray.length === 0) {
-        showSystemMessage("No suggestions generated. Please try again.");
+      // Send to n8n queue instead of direct API call
+      const response = await fetch('/api/n8n/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generate_suggestions',
+          data: { jobDescription },
+          userId: getSessionId()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to queue AI request');
       }
-      try {
-        await savePromptAndResponse(jobDescription, suggestionsArray);
-      } catch (e) {
-        console.error('Failed to save prompt/response to Supabase:', e);
+      
+      const { queueId, status, message, result } = await response.json();
+      
+      if (status === 'completed') {
+        // n8n not available, processed directly
+        setAiSuggestions(result.suggestions || []);
+        if (result.suggestions?.length === 0) {
+          showSystemMessage("No suggestions generated. Please try again.");
+        } 
+      } else if (status === 'queued' && queueId) {
+        showSystemMessage(`AI request queued successfully! Processing...`);
+        // Poll for results
+        await pollForResults(queueId, 'suggestions');
+      } else {
+        throw new Error(message || 'Failed to queue request');
       }
     } catch (error) {
       console.error("Error generating AI suggestions:", error);
-      showSystemMessage(`Error generating AI suggestions: ${error.message}`);
+      showSystemMessage(`Error: ${error.message}`);
     } finally {
       setAiLoading(false);
     }
   };
 
-  // Handler for AI text correction
+  // Poll for results from n8n queue
+  const pollForResults = async (queueId, type) => {
+    const maxAttempts = 60; // 60 seconds
+    let attempts = 0;
+    
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/n8n/webhook?queueId=${queueId}`);
+        if (!response.ok) {
+          throw new Error('Failed to check queue status');
+        }
+        
+        const status = await response.json();
+        
+        if (status.status === 'completed') {
+          if (type === 'suggestions') {
+            setAiSuggestions(status.result.suggestions || []);
+            if (status.result.suggestions?.length === 0) {
+              showSystemMessage("No suggestions generated. Please try again.");
+            }
+          } else if (type === 'correction') {
+            setCorrectedText(status.result.correctedText || '');
+            if (!status.result.correctedText) {
+              showSystemMessage("No corrections generated. Please try again.");
+            }
+          }
+          return;
+        } else if (status.status === 'failed') {
+          throw new Error(status.error || 'Processing failed');
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(poll, 1000);
+        } else {
+          throw new Error('Request timeout - please try again');
+        }
+      } catch (error) {
+        showSystemMessage(`Error: ${error.message}`);
+      }
+    };
+    
+    poll();
+  };
+
+  // Handler for AI text correction using n8n with fallback
   const handleCorrectText = async () => {
     if (!textToCorrect.trim()) {
       showSystemMessage("Please enter text to correct.");
       return;
     }
+    
     setCorrectionLoading(true);
     setCorrectedText('');
+    
     try {
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      const corrected = await aiCorrectText(textToCorrect, apiKey);
-      if (corrected) {
-        setCorrectedText(corrected);
+      // Send to n8n queue instead of direct API call
+      const response = await fetch('/api/n8n/webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'correct_text',
+          data: { text: textToCorrect },
+          userId: getSessionId()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to queue correction request');
+      }
+      
+      const { queueId, status, message, result } = await response.json();
+      
+      if (status === 'completed') {
+        // n8n not available, processed directly
+        setCorrectedText(result.correctedText || '');
+        if (!result.correctedText) {
+          showSystemMessage("No corrections generated. Please try again.");
+        } 
+      } else if (status === 'queued' && queueId) {
+        showSystemMessage(`Text correction queued successfully! Processing...`);
+        // Poll for results
+        await pollForResults(queueId, 'correction');
       } else {
-        showSystemMessage("No corrections generated. Please try again.");
+        throw new Error(message || 'Failed to queue request');
       }
     } catch (error) {
       console.error("Error correcting text:", error);
-      showSystemMessage(`Error correcting text: ${error.message}`);
+      showSystemMessage(`Error: ${error.message}`);
     } finally {
       setCorrectionLoading(false);
     }
@@ -519,6 +610,36 @@ const App = () => {
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle isDark={isDark} toggleTheme={toggleTheme} />
       </div>
+
+      {/* Floating n8n Button */}
+      <button
+        className="fixed bottom-6 left-6 z-50 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-full shadow-lg font-bold text-lg flex items-center gap-2 transition-all duration-300"
+        onClick={() => setShowQueueMonitor(true)}
+        style={{ boxShadow: '0 4px 24px 0 rgba(0,0,0,0.15)' }}
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-activity"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+        n8n
+      </button>
+
+          {/* n8n Queue Monitor Modal */}
+    {showQueueMonitor && (
+      <div className="fixed inset-0 z-[200] bg-black bg-opacity-40 flex items-center justify-center">
+        <div className={`relative w-full max-w-lg mx-auto rounded-xl shadow-2xl ${isDark ? 'bg-gray-900' : 'bg-white'}`}
+             style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="p-6">
+            <QueueMonitor isDark={isDark} />
+          </div>
+          <div className="p-6 pt-0">
+            <button
+              className="w-full py-3 px-6 rounded-lg font-semibold text-lg transition duration-300 bg-gray-500 hover:bg-gray-600 text-white"
+              onClick={() => setShowQueueMonitor(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
       {/* Modal for system messages */}
       {showModal && (

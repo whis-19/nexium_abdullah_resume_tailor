@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # n8n service for workflow automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: resume-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Basic n8n configuration
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${NEXT_PUBLIC_N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${NEXT_PUBLIC_N8N_BASIC_AUTH_PASSWORD:-resume_ai_2024}
+      
+      # Database configuration (using PostgreSQL for production)
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n_password
+      
+      # Environment variables for AI services
+      - GEMINI_API_KEY=${NEXT_PUBLIC_GEMINI_API_KEY}
+      - OPENAI_API_KEY=${NEXT_PUBLIC_OPENAI_API_KEY}
+      
+      # Database connection strings
+      - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - MONGODB_URI=${NEXT_PUBLIC_MONGODB_URI}
+      
+      # Webhook URLs
+      - RESUME_APP_URL=${NEXT_PUBLIC_RESUME_APP_URL:-http://localhost:3000}
+      - RESUME_WEBHOOK_URL=${NEXT_PUBLIC_RESUME_WEBHOOK_URL:-http://localhost:3000/api/n8n/webhook}
+      
+      # n8n specific settings
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=UTC
+      
+      # Security settings
+      - N8N_ENCRYPTION_KEY=${NEXT_PUBLIC_N8N_ENCRYPTION_KEY:-your-32-character-encryption-key-here}
+      - N8N_USER_MANAGEMENT_DISABLED=false
+      
+      # Performance settings
+      - N8N_EXECUTIONS_PROCESS=main
+      - N8N_EXECUTIONS_MODE=regular
+      - N8N_QUEUE_BULL_REDIS_HOST=redis
+      - N8N_QUEUE_BULL_REDIS_PORT=6379
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/.n8n/workflows
+      - ./n8n-credentials:/home/node/.n8n/credentials
+      
+    depends_on:
+      - postgres
+      - redis
+      
+    networks:
+      - resume-network
+
+  # PostgreSQL database for n8n
+  postgres:
+    image: postgres:15-alpine
+    container_name: resume-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n_password
+      - POSTGRES_NON_ROOT_USER=n8n
+      - POSTGRES_NON_ROOT_PASSWORD=n8n_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - resume-network
+
+  # Redis for n8n queue management
+  redis:
+    image: redis:7-alpine
+    container_name: resume-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - resume-network
+
+  # n8n worker for background processing
+  n8n-worker:
+    image: n8nio/n8n:latest
+    container_name: resume-n8n-worker
+    restart: unless-stopped
+    environment:
+      # Same environment variables as main n8n service
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n_password
+      
+      - GEMINI_API_KEY=${NEXT_PUBLIC_GEMINI_API_KEY}
+      - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - MONGODB_URI=${NEXT_PUBLIC_MONGODB_URI}
+      
+      # Worker specific settings
+      - N8N_EXECUTIONS_PROCESS=worker
+      - N8N_QUEUE_BULL_REDIS_HOST=redis
+      - N8N_QUEUE_BULL_REDIS_PORT=6379
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - resume-network
+
+  # Monitoring service (optional)
+  n8n-monitor:
+    image: n8nio/n8n:latest
+    container_name: resume-n8n-monitor
+    restart: unless-stopped
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n_password
+      
+      # Monitor specific settings
+      - N8N_EXECUTIONS_PROCESS=worker
+      - N8N_QUEUE_BULL_REDIS_HOST=redis
+      - N8N_QUEUE_BULL_REDIS_PORT=6379
+      
+      # Environment variables for AI services
+      - GEMINI_API_KEY=${NEXT_PUBLIC_GEMINI_API_KEY}
+      - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - MONGODB_URI=${NEXT_PUBLIC_MONGODB_URI}
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - resume-network
+
+volumes:
+  n8n_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  resume-network:
+    driver: bridge 

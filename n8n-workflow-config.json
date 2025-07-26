@@ -1,0 +1,365 @@
+{
+  "name": "Resume AI Automation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook-resume-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "resume-ai-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "operation": "equals",
+              "value2": "generate_suggestions"
+            }
+          ]
+        }
+      },
+      "id": "suggestions-branch",
+      "name": "Generate Suggestions?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "operation": "equals",
+              "value2": "correct_text"
+            }
+          ]
+        }
+      },
+      "id": "correction-branch",
+      "name": "Correct Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.NEXT_PUBLIC_GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "=[{\"role\": \"user\", \"parts\": [{\"text\": \"Based on this job description, generate 3-5 bullet point suggestions for a resume's experience section. Focus on actionable verbs and quantifiable results. Job Description: {{ $json.jobDescription }}\"}]}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gemini-suggestions",
+      "name": "Gemini AI - Suggestions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $env.NEXT_PUBLIC_GEMINI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "=[{\"role\": \"user\", \"parts\": [{\"text\": \"Correct the grammar, spelling, and punctuation of the following text, and suggest improvements for clarity and conciseness. Only return the corrected text. Text: {{ $json.textToCorrect }}\"}]}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gemini-correction",
+      "name": "Gemini AI - Correction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini AI response and extract suggestions\nconst response = $input.first().json;\nlet suggestionsArray = [];\n\nif (response.candidates && response.candidates.length > 0 && \n    response.candidates[0].content && response.candidates[0].content.parts && \n    response.candidates[0].content.parts.length > 0) {\n  \n  const text = response.candidates[0].content.parts[0].text;\n  suggestionsArray = text.split('\\n')\n    .filter(line => line.trim().startsWith('*') || line.trim().startsWith('-'))\n    .map(line => line.replace(/^([*-])\\t?/, '').trim());\n}\n\nreturn [{\n  json: {\n    suggestions: suggestionsArray,\n    originalJobDescription: $('Generate Suggestions?').item.json.jobDescription,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-suggestions",
+      "name": "Parse Suggestions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini AI response for corrected text\nconst response = $input.first().json;\nlet correctedText = '';\n\nif (response.candidates && response.candidates.length > 0 && \n    response.candidates[0].content && response.candidates[0].content.parts && \n    response.candidates[0].content.parts.length > 0) {\n  correctedText = response.candidates[0].content.parts[0].text;\n}\n\nreturn [{\n  json: {\n    correctedText: correctedText,\n    originalText: $('Correct Text?').item.json.textToCorrect,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "parse-correction",
+      "name": "Parse Correction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/prompt_logs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.originalJobDescription }}"
+            },
+            {
+              "name": "response",
+              "value": "={{ JSON.stringify($json.suggestions) }}"
+            },
+            {
+              "name": "type",
+              "value": "suggestions"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ $json.timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-suggestions",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/prompt_logs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.originalText }}"
+            },
+            {
+              "name": "response",
+              "value": "={{ $json.correctedText }}"
+            },
+            {
+              "name": "type",
+              "value": "correction"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ $json.timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-correction",
+      "name": "Log Correction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Generate Suggestions?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Correct Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Suggestions?": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI - Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correct Text?": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI - Correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI - Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Parse Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI - Correction": {
+      "main": [
+        [
+          {
+            "node": "Parse Correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Log to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Correction": {
+      "main": [
+        [
+          {
+            "node": "Log Correction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Correction": {
+      "main": [
+        [
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-15T10:00:00.000Z",
+  "versionId": "1"
+} 
