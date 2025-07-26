@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { addToQueue, getQueueStatus, updateQueueStatus } from '../../../../db/queue';
 import { generateAISuggestions, correctText } from '../../../ai/generate';
+import { savePromptAndResponse } from '../../../db/supabase';
 
 // Helper function to check if n8n is available
 async function checkN8nAvailability() {
@@ -56,7 +57,15 @@ export async function POST(request) {
       
       try {
         const result = await processDirectAIRequest(action, data);
-        
+
+        // Save prompt and response for analytics/history
+        await savePromptAndResponse({
+          prompt: data.jobDescription || data.text,
+          response: result,
+          model: 'gemini-1.5-flash',
+          userId: userId || 'anonymous'
+        });
+
         // Return results directly without any queue involvement
         const resultKey = action === 'correct_text' ? 'correctedText' : 'suggestions';
         return NextResponse.json({ 
