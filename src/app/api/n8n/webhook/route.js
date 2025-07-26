@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { addToQueue, getQueueStatus, updateQueueStatus } from '../../../../db/queue';
 import { generateAISuggestions, correctText } from '../../../ai/generate';
-import { savePromptAndResponse } from '../../../db/supabase';
+import { savePromptAndResponse } from '../../../../db/supabase';
 
 // Helper function to check if n8n is available
 async function checkN8nAvailability() {
